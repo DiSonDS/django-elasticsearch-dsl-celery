@@ -16,15 +16,15 @@ def handle_save(pk,  app_label, model_name):
 @shared_task
 def handle_pre_delete(pk,  app_label, model_name):
     sender = apps.get_model(app_label, model_name)
-    instance = sender.objects.get(pk=pk)
-    registry.delete_related(instance)
+    fake_instance = sender(pk=pk)
+    registry.delete_related(fake_instance)
 
 
 @shared_task
 def handle_delete(pk,  app_label, model_name):
     sender = apps.get_model(app_label, model_name)
-    instance = sender.objects.get(pk=pk)
-    registry.delete(instance, raise_on_error=False)
+    fake_instance = sender(pk=pk)
+    registry.delete(fake_instance, raise_on_error=False)
 
 
 class CelerySignalProcessor(RealTimeSignalProcessor):

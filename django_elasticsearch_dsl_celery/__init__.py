@@ -4,6 +4,8 @@ from django.db import transaction, models
 from django_elasticsearch_dsl.registries import registry
 from django_elasticsearch_dsl.signals import BaseSignalProcessor
 
+INDEXED_MODELS = registry.get_models()
+
 
 @shared_task
 def handle_save(pk, app_label, model_name):
@@ -31,28 +33,33 @@ class CelerySignalProcessor(BaseSignalProcessor):
     """Celery signal processor.
     Allows automatic updates on the index as delayed background tasks using
     Celery.
-    NB: We cannot process deletes as background tasks.
-    By the time the Celery worker would pick up the delete job, the
-    model instance would already deleted. We can get around this by
-    setting Celery to use `pickle` and sending the object to the worker,
-    but using `pickle` opens the application up to security concerns.
     """
 
     def setup(self):
-        # Listen to all model saves.
-        models.signals.post_save.connect(self.handle_save)
-        models.signals.post_delete.connect(self.handle_delete)
+        """Set up.
 
-        # Use to manage related objects update
-        models.signals.m2m_changed.connect(self.handle_m2m_changed)
-        models.signals.pre_delete.connect(self.handle_pre_delete)
+        A hook for setting up anything necessary for
+        ``handle_save/handle_delete`` to be executed.
+        """
+
+        for model in INDEXED_MODELS:
+            models.signals.post_save.connect(self.handle_save, sender=model)
+            models.signals.post_delete.connect(self.handle_delete, sender=model)
+            models.signals.m2m_changed.connect(self.handle_m2m_changed, sender=model)
+            models.signals.pre_delete.connect(self.handle_pre_delete, sender=model)
 
     def teardown(self):
-        # Listen to all model saves.
-        models.signals.post_save.disconnect(self.handle_save)
-        models.signals.post_delete.disconnect(self.handle_delete)
-        models.signals.m2m_changed.disconnect(self.handle_m2m_changed)
-        models.signals.pre_delete.disconnect(self.handle_pre_delete)
+        """Tear-down.
+
+        A hook for tearing down anything necessary for
+        ``handle_save/handle_delete`` to no longer be executed.
+        """
+
+        for model in INDEXED_MODELS:
+            models.signals.post_save.disconnect(self.handle_save, sender=model)
+            models.signals.post_delete.disconnect(self.handle_delete, sender=model)
+            models.signals.m2m_changed.disconnect(self.handle_m2m_changed, sender=model)
+            models.signals.pre_delete.disconnect(self.handle_pre_delete, sender=model)
 
     def handle_save(self, sender, instance, **kwargs):
         """Handle save.

@@ -1,5 +1,5 @@
 
-# django-elasticsearch-dsl Celery Processor
+# Celery Processor for [django-elasticsearch-dsl](https://github.com/django-es/django-elasticsearch-dsl)
 
 
 ## Installation

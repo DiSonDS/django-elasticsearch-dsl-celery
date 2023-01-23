@@ -7,7 +7,7 @@ from django_elasticsearch_dsl.signals import BaseSignalProcessor
 INDEXED_MODELS = registry.get_models()
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def handle_save(pk, app_label, model_name):
     sender = apps.get_model(app_label, model_name)
     instance = sender.objects.get(pk=pk)
@@ -15,14 +15,14 @@ def handle_save(pk, app_label, model_name):
     registry.update_related(instance)
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def handle_pre_delete(pk, app_label, model_name):
     sender = apps.get_model(app_label, model_name)
     fake_instance = sender(pk=pk)
     registry.delete_related(fake_instance)
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def handle_delete(pk, app_label, model_name):
     sender = apps.get_model(app_label, model_name)
     fake_instance = sender(pk=pk)
